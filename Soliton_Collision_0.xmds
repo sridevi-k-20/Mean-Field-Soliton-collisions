@@ -1,0 +1,74 @@
+<simulation xmds-version="2">
+  <name>sech_soliton_collision</name>
+  
+  <author>K Sridevi</author>
+  <description>
+    Soliton Collision using Mean Field Theory
+  </description>
+  
+  <geometry>
+    <propagation_dimension> t </propagation_dimension>
+    <transverse_dimensions>
+      <dimension name="x" lattice="512"  domain="(-36.0, 36.0)" />
+    </transverse_dimensions>
+  </geometry>
+  
+  <features>
+    <auto_vectorise />
+    <fftw />
+    <benchmark />
+    <globals>
+      <![CDATA[
+      const double Natoms = 10;
+      const double U=(2/(Natoms));
+      const double N=sqrt(Natoms/2);
+      const double x0 =  -16.0; 							//position of first soliton
+      const double x1 =   16.0;								//position of second soliton
+      const double tcoll = 80;							        //target collision time
+      const double velo =fabs(x0)/tcoll;					        //initial velocity to realize target collision time
+      
+      const double varphi = 0; 							        //initial relative phase      
+      const double vini = velo;	                                                       //initial soliton velocity
+      
+      ]]>
+    </globals>
+  </features>
+  <vector name="wavefunction"  type="complex"  dimensions="x">
+    <components>psi</components>
+    <initialisation>
+      <![CDATA[
+        psi = (N/cosh(x-x0))*exp(i*velo*x)+(N/cosh(x-x1))*exp(-i*velo*x)*exp(i*varphi);
+      ]]>
+    </initialisation>
+  </vector>
+  
+  <sequence>
+    <integrate algorithm="ARK45" interval="120" tolerance="1e-6">
+      <samples>100</samples>
+      <operators>
+        <operator kind="ip">
+          <operator_names>L</operator_names>
+          <![CDATA[
+            L = -0.5*i*kx*kx;
+          ]]>
+        </operator>
+        <integration_vectors>wavefunction</integration_vectors>
+        <![CDATA[
+          dpsi_dt = L[psi] + i*U*mod2(psi)*psi;
+        ]]>
+      </operators>
+    </integrate>
+  </sequence>
+  
+  <output format="hdf5">
+    <group>
+      <sampling basis="x" initial_sample="yes">
+        <moments>density</moments>
+        <dependencies>wavefunction</dependencies>
+        <![CDATA[
+          density = mod2(psi);
+        ]]>
+      </sampling>
+    </group>
+  </output>
+</simulation>
